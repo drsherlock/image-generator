@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 	"image/color"
 	"os"
@@ -9,47 +11,62 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	// get file name, title from arguments
+	fileName := flag.String("file-name", "input.jpg", "name of image")
+	title := flag.String("title", "Yello!", "title of image")
+	titleColor := flag.String("title-color", "#ffffff", "color of title")
+	flag.Parse()
+
+	if err := run(fileName, title, titleColor); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
-	dc := gg.NewContext(3475, 3503)
+func run(fileName *string, title *string, titleColor *string) error {
+	// draw the image
+	backgroundImage, err := gg.LoadImage(*fileName)
 
-	backgroundImage, err := gg.LoadImage("in.jpg")
 	if err != nil {
 		return fmt.Errorf("load background image %w", err)
 	}
+
+	dc := gg.NewContextForImage(backgroundImage)
+
+	backgroundImage = imaging.Fill(backgroundImage, dc.Width(), dc.Height(), imaging.Center, imaging.Lanczos)
+
 	dc.DrawImage(backgroundImage, 0, 0)
 
-	margin := 50
-	x := margin
-	y := margin
-	w := dc.Width() - (2.0 * margin)
-	h := dc.Height() - (2.0 * margin)
+	// draw the overlay
+	imageWidth := float64(dc.Width())
+	imageHeight := float64(dc.Height())
+
+	x := imageWidth / 50
+	y := imageHeight / 50
+	w := imageWidth - (2.0 * x)
+	h := imageHeight - (2.0 * y)
 	dc.SetColor(color.RGBA{0, 0, 0, 150})
-	dc.DrawRectangle(float64(x), float64(y), float64(w), float64(h))
+	dc.DrawRectangle(x, y, w, h)
 	dc.Fill()
 
-	title := "Row! Row! Fight The Powah!"
+	// add text
 	textShadowColor := color.Black
-	textColor := color.White
 	fontPath := filepath.Join("fonts", "BebasNeue-Regular.ttf")
-	if err := dc.LoadFontFace(fontPath, 160); err != nil {
+	if err := dc.LoadFontFace(fontPath, 200); err != nil {
 		return fmt.Errorf("load font face %w", err)
 	}
-	textRightMargin := 90
-	textTopMargin := 120
-	x = textRightMargin
+	textMargin := x * 1.5
+	textTopMargin := imageHeight / 2.5
+	x = textMargin
 	y = textTopMargin
-	maxWidth := dc.Width() - textRightMargin - textRightMargin
-	dc.SetColor(textShadowColor)
-	dc.DrawStringWrapped(title, float64(x+1), float64(y+1), 0, 0, float64(maxWidth), 1.5, gg.AlignLeft)
-	dc.SetColor(textColor)
-	dc.DrawStringWrapped(title, float64(x), float64(y), 0, 0, float64(maxWidth), 1.5, gg.AlignLeft)
+	maxWidth := imageWidth - textMargin - textMargin
 
+	dc.SetColor(textShadowColor)
+	dc.DrawStringWrapped(*title, x+1, y+1, 0, 0, float64(maxWidth), 1.5, gg.AlignCenter)
+	dc.SetHexColor(*titleColor)
+	dc.DrawStringWrapped(*title, x, y, 0, 0, float64(maxWidth), 1.5, gg.AlignCenter)
+
+	// save the new image
 	if err := dc.SavePNG("out.png"); err != nil {
 		return fmt.Errorf("save png %w", err)
 	}
