@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
+	"image"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -12,41 +13,47 @@ import (
 )
 
 type Image struct {
-	fileName   string
-	title      string
-	titleColor string
-	fontName   string
-	width      float64
-	height     float64
+	baseFileName string
+	title        string
+	titleColor   string
+	fontName     string
+	width        float64
+	height       float64
 }
+
+type DrawingContext interface {
+	DrawImage(im image.Image, x, y int)
+	Image() image.Image
+}
+
+type FillFunc func(img image.Image, width, height int, anchor imaging.Anchor, filter imaging.ResampleFilter) *image.NRGBA
 
 func main() {
 	// get file name, title from arguments
-	fileName := flag.String("file-name", "input.jpg", "name of image")
+	baseFileName := flag.String("file-name", "input.jpg", "name of image")
 	title := flag.String("title", "Yello!", "title of image")
 	titleColor := flag.String("title-color", "#ffffff", "color of title")
 	flag.Parse()
 
-	image := Image{
-		fileName:   *fileName,
-		title:      *title,
-		titleColor: *titleColor,
-	}
-
-	if err := run(image); err != nil {
+	if err := run(baseFileName, title, titleColor); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(image Image) error {
+func run(baseFileName *string, title *string, titleColor *string) error {
 	var wg sync.WaitGroup
 	err := filepath.Walk("fonts", func(fontPath string, fontInfo os.FileInfo, err error) error {
-		image.fontName = fontInfo.Name()
+		im := &Image{
+			baseFileName: *baseFileName,
+			title:        *title,
+			titleColor:   *titleColor,
+			fontName:     fontInfo.Name(),
+		}
 
 		if !fontInfo.IsDir() {
 			wg.Add(1)
-			go generate(image, fontPath, &wg)
+			go generate(im, fontPath, &wg)
 		}
 		return nil
 	})
@@ -60,32 +67,32 @@ func run(image Image) error {
 	return nil
 }
 
-func generate(image Image, fontPath string, wg *sync.WaitGroup) error {
+func generate(im *Image, fontPath string, wg *sync.WaitGroup) error {
 	defer wg.Done()
 
-	backgroundImage, err := gg.LoadImage(image.fileName)
+	backgroundImage, err := gg.LoadImage(im.baseFileName)
 	if err != nil {
 		return fmt.Errorf("load background image %w", err)
 	}
 	dc := gg.NewContextForImage(backgroundImage)
 
-	image.width = float64(dc.Width())
-	image.height = float64(dc.Height())
+	im.width = float64(dc.Width())
+	im.height = float64(dc.Height())
 
 	// draw the image
-	drawImage(image, dc)
+	DrawImage(im, dc, imaging.Fill)
 
 	// draw the overlay
-	drawOverlay(image, dc)
+	DrawOverlay(im, dc)
 
 	// add text
-	err = addText(image, dc, fontPath)
+	err = AddText(im, dc, fontPath)
 	if err != nil {
 		return fmt.Errorf("add text %w", err)
 	}
 
 	// save image
-	err = saveImage(image, dc)
+	err = SaveImage(im, dc)
 	if err != nil {
 		return fmt.Errorf("save image %w", err)
 	}
@@ -93,42 +100,42 @@ func generate(image Image, fontPath string, wg *sync.WaitGroup) error {
 	return nil
 }
 
-func drawImage(image Image, dc *gg.Context) {
-	backgroundImage := imaging.Fill(dc.Image(), dc.Width(), dc.Height(), imaging.Center, imaging.Lanczos)
+func DrawImage(im *Image, dc DrawingContext, fill FillFunc) {
+	backgroundImage := fill(dc.Image(), int(im.width), int(im.height), imaging.Center, imaging.Lanczos)
 	dc.DrawImage(backgroundImage, 0, 0)
 }
 
-func drawOverlay(image Image, dc *gg.Context) {
-	x := image.width / 50
-	y := image.height / 50
-	w := image.width - (2.0 * x)
-	h := image.height - (2.0 * y)
-	dc.SetColor(color.RGBA{0, 0, 0, 150})
+func DrawOverlay(im *Image, dc *gg.Context) {
+	x := im.width / 50
+	y := im.height / 50
+	w := im.width - (2.0 * x)
+	h := im.height - (2.0 * y)
+	dc.SetColor(color.RGBA{150, 150, 150, 150})
 	dc.DrawRectangle(x, y, w, h)
 	dc.Fill()
 }
 
-func addText(image Image, dc *gg.Context, fontPath string) error {
+func AddText(im *Image, dc *gg.Context, fontPath string) error {
 	textShadowColor := color.Black
 	if err := dc.LoadFontFace(fontPath, 200); err != nil {
 		return err
 	}
-	textMargin := image.width * 0.03
-	textTopMargin := image.height / 2.5
+	textMargin := im.width * 0.03
+	textTopMargin := im.height / 2.5
 	x := textMargin
 	y := textTopMargin
-	maxWidth := image.width - textMargin - textMargin
+	maxWidth := im.width - textMargin - textMargin
 
 	dc.SetColor(textShadowColor)
-	dc.DrawStringWrapped(image.title, x+1, y+1, 0, 0, float64(maxWidth), 1.5, gg.AlignCenter)
-	dc.SetHexColor(image.titleColor)
-	dc.DrawStringWrapped(image.title, x, y, 0, 0, float64(maxWidth), 1.5, gg.AlignCenter)
+	dc.DrawStringWrapped(im.title, x+1, y+1, 0, 0, float64(maxWidth), 1.5, gg.AlignCenter)
+	dc.SetHexColor(im.titleColor)
+	dc.DrawStringWrapped(im.title, x, y, 0, 0, float64(maxWidth), 1.5, gg.AlignCenter)
 
 	return nil
 }
 
-func saveImage(image Image, dc *gg.Context) error {
-	if err := dc.SavePNG("output/" + image.fontName + ".png"); err != nil {
+func SaveImage(im *Image, dc *gg.Context) error {
+	if err := dc.SavePNG("output/" + im.fontName + ".png"); err != nil {
 		return err
 	}
 
