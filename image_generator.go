@@ -24,6 +24,13 @@ type Image struct {
 type DrawingContext interface {
 	DrawImage(im image.Image, x, y int)
 	Image() image.Image
+	SetColor(c color.Color)
+	DrawRectangle(x, y, w, h float64)
+	Fill()
+	LoadFontFace(path string, points float64) error
+	DrawStringWrapped(s string, x, y, ax, ay, width, lineSpacing float64, align gg.Align)
+	SetHexColor(x string)
+	SavePNG(path string) error
 }
 
 type FillFunc func(img image.Image, width, height int, anchor imaging.Anchor, filter imaging.ResampleFilter) *image.NRGBA
@@ -105,7 +112,7 @@ func DrawImage(im *Image, dc DrawingContext, fill FillFunc) {
 	dc.DrawImage(backgroundImage, 0, 0)
 }
 
-func DrawOverlay(im *Image, dc *gg.Context) {
+func DrawOverlay(im *Image, dc DrawingContext) {
 	x := im.width / 50
 	y := im.height / 50
 	w := im.width - (2.0 * x)
@@ -115,7 +122,7 @@ func DrawOverlay(im *Image, dc *gg.Context) {
 	dc.Fill()
 }
 
-func AddText(im *Image, dc *gg.Context, fontPath string) error {
+func AddText(im *Image, dc DrawingContext, fontPath string) error {
 	textShadowColor := color.Black
 	if err := dc.LoadFontFace(fontPath, 200); err != nil {
 		return err
@@ -134,8 +141,9 @@ func AddText(im *Image, dc *gg.Context, fontPath string) error {
 	return nil
 }
 
-func SaveImage(im *Image, dc *gg.Context) error {
-	if err := dc.SavePNG("output/" + im.fontName + ".png"); err != nil {
+func SaveImage(im *Image, dc DrawingContext) error {
+	outputPath := "output/" + im.fontName + ".png"
+	if err := dc.SavePNG(outputPath); err != nil {
 		return err
 	}
 

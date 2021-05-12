@@ -3,21 +3,60 @@ package main
 import (
 	// "github.com/fogleman/gg"
 	"github.com/disintegration/imaging"
+	"github.com/fogleman/gg"
 	"image"
+	"image/color"
 	"testing"
 )
 
 type ContextSpy struct {
-	CalledDrawImage bool
-	CalledImage     bool
+	calledDrawImage         bool
+	calledImage             bool
+	calledSetColor          bool
+	calledDrawRectangle     bool
+	calledFill              bool
+	calledLoadFontFace      bool
+	calledDrawStringWrapped bool
+	calledSetHexColor       bool
+	calledSavedPNG          bool
 }
 
 func (dc *ContextSpy) DrawImage(im image.Image, x, y int) {
-	dc.CalledDrawImage = true
+	dc.calledDrawImage = true
 }
 
 func (dc *ContextSpy) Image() image.Image {
-	dc.CalledImage = true
+	dc.calledImage = true
+	return nil
+}
+
+func (dc *ContextSpy) SetColor(c color.Color) {
+	dc.calledSetColor = true
+}
+
+func (dc *ContextSpy) DrawRectangle(x, y, w, h float64) {
+	dc.calledDrawRectangle = true
+}
+
+func (dc *ContextSpy) Fill() {
+	dc.calledFill = true
+}
+
+func (dc *ContextSpy) LoadFontFace(path string, points float64) error {
+	dc.calledLoadFontFace = true
+	return nil
+}
+
+func (dc *ContextSpy) DrawStringWrapped(s string, x, y, ax, ay, width, lineSpacing float64, align gg.Align) {
+	dc.calledDrawStringWrapped = true
+}
+
+func (dc *ContextSpy) SetHexColor(x string) {
+	dc.calledSetHexColor = true
+}
+
+func (dc *ContextSpy) SavePNG(path string) error {
+	dc.calledSavedPNG = true
 	return nil
 }
 
@@ -28,26 +67,104 @@ var mockFill FillFunc = func(img image.Image, width, height int, anchor imaging.
 func TestDrawImage(t *testing.T) {
 	t.Run("test draw image", func(t *testing.T) {
 		im := &Image{}
+		spyDC := &ContextSpy{}
 
-		spyDc := &ContextSpy{}
+		DrawImage(im, spyDC, mockFill)
 
-		DrawImage(im, spyDc, mockFill)
-
-		if !spyDc.CalledDrawImage {
+		if !spyDC.calledDrawImage {
 			t.Errorf("should have called DrawImage")
 		}
-		if !spyDc.CalledImage {
+		if !spyDC.calledImage {
 			t.Errorf("should have called Image")
 		}
+	})
+}
 
+func TestDrawOverlay(t *testing.T) {
+	t.Run("test draw overlay", func(t *testing.T) {
+		im := &Image{}
+		spyDC := &ContextSpy{}
+
+		DrawOverlay(im, spyDC)
+
+		if !spyDC.calledSetColor {
+			t.Errorf("should have called SetColor")
+		}
+		if !spyDC.calledDrawRectangle {
+			t.Errorf("should have called DrawRectangle")
+		}
+		if !spyDC.calledFill {
+			t.Errorf("should have called Fill")
+		}
+	})
+}
+
+func TestAddText(t *testing.T) {
+	t.Run("test add text", func(t *testing.T) {
+		im := &Image{}
+		spyDC := &ContextSpy{}
+		fontPath := ""
+
+		AddText(im, spyDC, fontPath)
+
+		if !spyDC.calledLoadFontFace {
+			t.Errorf("should have called LoadFontFace")
+		}
+		if !spyDC.calledDrawStringWrapped {
+			t.Errorf("should have called DrawStringWrapped")
+		}
+		if !spyDC.calledSetHexColor {
+			t.Errorf("should have called SetHexColor")
+		}
+	})
+}
+
+func TestSaveImage(t *testing.T) {
+	t.Run("test save image", func(t *testing.T) {
+		im := &Image{}
+		spyDC := &ContextSpy{}
+
+		SaveImage(im, spyDC)
+
+		if !spyDC.calledSavedPNG {
+			t.Errorf("should have called SaveImage")
+		}
 	})
 }
 
 func BenchmarkDrawImage(b *testing.B) {
 	im := &Image{}
+	spyDC := &ContextSpy{}
 
-	spyDc := &ContextSpy{}
 	for i := 0; i < b.N; i++ {
-		DrawImage(im, spyDc, mockFill)
+		DrawImage(im, spyDC, mockFill)
+	}
+}
+
+func BenchmarkDrawOverlay(b *testing.B) {
+	im := &Image{}
+	spyDC := &ContextSpy{}
+
+	for i := 0; i < b.N; i++ {
+		DrawOverlay(im, spyDC)
+	}
+}
+
+func BenchmarkAddText(b *testing.B) {
+	im := &Image{}
+	spyDC := &ContextSpy{}
+	fontPath := ""
+
+	for i := 0; i < b.N; i++ {
+		AddText(im, spyDC, fontPath)
+	}
+}
+
+func BenchmarkSaveImage(b *testing.B) {
+	im := &Image{}
+	spyDC := &ContextSpy{}
+
+	for i := 0; i < b.N; i++ {
+		SaveImage(im, spyDC)
 	}
 }
