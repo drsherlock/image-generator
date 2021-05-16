@@ -1,4 +1,4 @@
-module image-generator
+module github.com/drsherlock/image-generator
 
 go 1.16
 

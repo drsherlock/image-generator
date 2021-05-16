@@ -1,4 +1,4 @@
-package main
+package image_generator
 
 import (
 	"flag"
@@ -34,6 +34,36 @@ type DrawingContext interface {
 }
 
 type FillFunc func(img image.Image, width, height int, anchor imaging.Anchor, filter imaging.ResampleFilter) *image.NRGBA
+
+func Create(imFile *os.File, title string, titleColor string, fonts []string) {
+	var wg sync.WaitGroup
+	err := filepath.Walk("fonts", func(fontPath string, fontInfo os.FileInfo, err error) error {
+		for _, f := range fonts {
+			if f == fontInfo.Name() {
+				im := &Image{
+					baseFileName: *baseFileName,
+					title:        *title,
+					titleColor:   *titleColor,
+					fontName:     fontInfo.Name(),
+				}
+
+				if !fontInfo.IsDir() {
+					wg.Add(1)
+					go generate(im, fontPath, &wg)
+				}
+				return nil
+			}
+		}
+	})
+
+	wg.Wait()
+
+	if err != nil {
+		return fmt.Errorf("load font face %w", err)
+	}
+
+	return nil
+}
 
 func main() {
 	// get file name, title from arguments
@@ -87,19 +117,19 @@ func generate(im *Image, fontPath string, wg *sync.WaitGroup) error {
 	im.height = float64(dc.Height())
 
 	// draw the image
-	DrawImage(im, dc, imaging.Fill)
+	drawImage(im, dc, imaging.Fill)
 
 	// draw the overlay
-	DrawOverlay(im, dc)
+	drawOverlay(im, dc)
 
 	// add text
-	err = AddText(im, dc, fontPath)
+	err = addText(im, dc, fontPath)
 	if err != nil {
 		return fmt.Errorf("add text %w", err)
 	}
 
 	// save image
-	err = SaveImage(im, dc)
+	err = saveImage(im, dc)
 	if err != nil {
 		return fmt.Errorf("save image %w", err)
 	}
@@ -107,12 +137,12 @@ func generate(im *Image, fontPath string, wg *sync.WaitGroup) error {
 	return nil
 }
 
-func DrawImage(im *Image, dc DrawingContext, fill FillFunc) {
+func drawImage(im *Image, dc DrawingContext, fill FillFunc) {
 	backgroundImage := fill(dc.Image(), int(im.width), int(im.height), imaging.Center, imaging.Lanczos)
 	dc.DrawImage(backgroundImage, 0, 0)
 }
 
-func DrawOverlay(im *Image, dc DrawingContext) {
+func drawOverlay(im *Image, dc DrawingContext) {
 	x := im.width / 50
 	y := im.height / 50
 	w := im.width - (2.0 * x)
@@ -122,7 +152,7 @@ func DrawOverlay(im *Image, dc DrawingContext) {
 	dc.Fill()
 }
 
-func AddText(im *Image, dc DrawingContext, fontPath string) error {
+func addText(im *Image, dc DrawingContext, fontPath string) error {
 	textShadowColor := color.Black
 	if err := dc.LoadFontFace(fontPath, 200); err != nil {
 		return err
@@ -141,7 +171,7 @@ func AddText(im *Image, dc DrawingContext, fontPath string) error {
 	return nil
 }
 
-func SaveImage(im *Image, dc DrawingContext) error {
+func saveImage(im *Image, dc DrawingContext) error {
 	outputPath := "output/" + im.fontName + ".png"
 	if err := dc.SavePNG(outputPath); err != nil {
 		return err

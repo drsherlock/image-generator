@@ -1,7 +1,6 @@
-package main
+package image_generator
 
 import (
-	// "github.com/fogleman/gg"
 	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 	"image"
@@ -69,7 +68,7 @@ func TestDrawImage(t *testing.T) {
 		im := &Image{}
 		spyDC := &ContextSpy{}
 
-		DrawImage(im, spyDC, mockFill)
+		drawImage(im, spyDC, mockFill)
 
 		if !spyDC.calledDrawImage {
 			t.Errorf("should have called DrawImage")
@@ -85,7 +84,7 @@ func TestDrawOverlay(t *testing.T) {
 		im := &Image{}
 		spyDC := &ContextSpy{}
 
-		DrawOverlay(im, spyDC)
+		drawOverlay(im, spyDC)
 
 		if !spyDC.calledSetColor {
 			t.Errorf("should have called SetColor")
@@ -105,7 +104,7 @@ func TestAddText(t *testing.T) {
 		spyDC := &ContextSpy{}
 		fontPath := ""
 
-		AddText(im, spyDC, fontPath)
+		addText(im, spyDC, fontPath)
 
 		if !spyDC.calledLoadFontFace {
 			t.Errorf("should have called LoadFontFace")
@@ -124,7 +123,7 @@ func TestSaveImage(t *testing.T) {
 		im := &Image{}
 		spyDC := &ContextSpy{}
 
-		SaveImage(im, spyDC)
+		saveImage(im, spyDC)
 
 		if !spyDC.calledSavedPNG {
 			t.Errorf("should have called SaveImage")
@@ -137,7 +136,7 @@ func BenchmarkDrawImage(b *testing.B) {
 	spyDC := &ContextSpy{}
 
 	for i := 0; i < b.N; i++ {
-		DrawImage(im, spyDC, mockFill)
+		drawImage(im, spyDC, mockFill)
 	}
 }
 
@@ -146,7 +145,7 @@ func BenchmarkDrawOverlay(b *testing.B) {
 	spyDC := &ContextSpy{}
 
 	for i := 0; i < b.N; i++ {
-		DrawOverlay(im, spyDC)
+		drawOverlay(im, spyDC)
 	}
 }
 
@@ -156,7 +155,7 @@ func BenchmarkAddText(b *testing.B) {
 	fontPath := ""
 
 	for i := 0; i < b.N; i++ {
-		AddText(im, spyDC, fontPath)
+		addText(im, spyDC, fontPath)
 	}
 }
 
@@ -165,6 +164,6 @@ func BenchmarkSaveImage(b *testing.B) {
 	spyDC := &ContextSpy{}
 
 	for i := 0; i < b.N; i++ {
-		SaveImage(im, spyDC)
+		saveImage(im, spyDC)
 	}
 }
