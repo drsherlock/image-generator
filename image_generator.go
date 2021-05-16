@@ -1,4 +1,4 @@
-package image_generator
+package imagegen
 
 import (
 	"flag"
