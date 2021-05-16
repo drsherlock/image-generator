@@ -35,15 +35,15 @@ type DrawingContext interface {
 
 type FillFunc func(img image.Image, width, height int, anchor imaging.Anchor, filter imaging.ResampleFilter) *image.NRGBA
 
-func Create(imFile *os.File, title string, titleColor string, fonts []string) {
+func Create(imFile *os.File, title string, titleColor string, fonts []string) error {
 	var wg sync.WaitGroup
 	err := filepath.Walk("fonts", func(fontPath string, fontInfo os.FileInfo, err error) error {
 		for _, f := range fonts {
 			if f == fontInfo.Name() {
 				im := &Image{
-					baseFileName: *baseFileName,
-					title:        *title,
-					titleColor:   *titleColor,
+					baseFileName: imFile.Name(),
+					title:        title,
+					titleColor:   titleColor,
 					fontName:     fontInfo.Name(),
 				}
 
@@ -51,9 +51,9 @@ func Create(imFile *os.File, title string, titleColor string, fonts []string) {
 					wg.Add(1)
 					go generate(im, fontPath, &wg)
 				}
-				return nil
 			}
 		}
+		return nil
 	})
 
 	wg.Wait()
