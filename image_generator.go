@@ -172,6 +172,11 @@ func addText(im *Image, dc DrawingContext, fontPath string) error {
 }
 
 func saveImage(im *Image, dc DrawingContext) error {
+	err := os.MkdirAll("./output", os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	outputPath := "output/" + im.fontName + ".png"
 	if err := dc.SavePNG(outputPath); err != nil {
 		return err
