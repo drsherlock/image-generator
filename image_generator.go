@@ -39,7 +39,7 @@ func Create(imFile *os.File, title string, titleColor string, fonts []string) er
 	var wg sync.WaitGroup
 	err := filepath.Walk("fonts", func(fontPath string, fontInfo os.FileInfo, err error) error {
 		for _, f := range fonts {
-			if f == fontInfo.Name() {
+			if f+".ttf" == fontInfo.Name() {
 				im := &Image{
 					baseFileName: imFile.Name(),
 					title:        title,
