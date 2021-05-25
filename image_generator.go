@@ -177,7 +177,7 @@ func saveImage(im *Image, dc DrawingContext) error {
 		return err
 	}
 
-	outputPath := "output/" + im.baseFileName + "/" + im.fontName + "_" + im.titleColor + ".png"
+	outputPath := "output/" + filepath.Base(im.baseFileName) + "/" + im.fontName + "_" + im.titleColor + ".png"
 	if err := dc.SavePNG(outputPath); err != nil {
 		return err
 	}
