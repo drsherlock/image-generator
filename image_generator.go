@@ -172,7 +172,7 @@ func addText(im *Image, dc DrawingContext, fontPath string) error {
 }
 
 func saveImage(im *Image, dc DrawingContext) error {
-	err := os.MkdirAll("./output", os.ModePerm)
+	err := os.MkdirAll("./output/"+im.baseFileName, os.ModePerm)
 	if err != nil {
 		return err
 	}
