@@ -42,7 +42,7 @@ func Create(imFile *os.File, title string, titleColor string, fonts []string) er
 		for _, f := range fonts {
 			if f+".ttf" == fontInfo.Name() {
 				im := &Image{
-					baseFileName: filepath.Base(imFile.Name()),
+					baseFileName: imFile.Name(),
 					title:        title,
 					titleColor:   titleColor,
 					fontName:     fontInfo.Name(),
@@ -83,7 +83,7 @@ func run(baseFileName *string, title *string, titleColor *string) error {
 	var wg sync.WaitGroup
 	err := filepath.Walk("fonts", func(fontPath string, fontInfo os.FileInfo, err error) error {
 		im := &Image{
-			baseFileName: *baseFileName,
+			baseFileName: filepath.Base(*baseFileName),
 			title:        *title,
 			titleColor:   *titleColor,
 			fontName:     fontInfo.Name(),
@@ -173,7 +173,7 @@ func addText(im *Image, dc DrawingContext, fontPath string) error {
 }
 
 func saveImage(im *Image, dc DrawingContext) error {
-	fileName := strings.TrimSuffix(im.baseFileName, filepath.Ext(im.baseFileName))
+	fileName := strings.TrimSuffix(filepath.Base(im.baseFileName), filepath.Ext(im.baseFileName))
 
 	err := os.MkdirAll("./output/"+fileName, os.ModePerm)
 	if err != nil {
