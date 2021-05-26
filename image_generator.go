@@ -42,7 +42,7 @@ func Create(imFile *os.File, title string, titleColor string, fonts []string) er
 		for _, f := range fonts {
 			if f+".ttf" == fontInfo.Name() {
 				im := &Image{
-					baseFileName: imFile.Name(),
+					baseFileName: filepath.Base(imFile.Name()),
 					title:        title,
 					titleColor:   titleColor,
 					fontName:     fontInfo.Name(),
