@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -172,12 +173,14 @@ func addText(im *Image, dc DrawingContext, fontPath string) error {
 }
 
 func saveImage(im *Image, dc DrawingContext) error {
-	err := os.MkdirAll("./output/"+filepath.Base(im.baseFileName), os.ModePerm)
+	fileName := strings.TrimSuffix(im.baseFileName, filepath.Ext(im.baseFileName))
+
+	err := os.MkdirAll("./output/"+fileName, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	outputPath := "output/" + filepath.Base(im.baseFileName) + "/" + im.fontName + "_" + im.titleColor + ".png"
+	outputPath := "output/" + fileName + "/" + im.fontName + "_" + im.titleColor + ".png"
 	if err := dc.SavePNG(outputPath); err != nil {
 		return err
 	}
