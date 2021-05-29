@@ -180,7 +180,7 @@ func saveImage(im *Image, dc DrawingContext) error {
 		return err
 	}
 
-	outputPath := "output/" + fileName + "/" + im.fontName + "_" + im.titleColor + ".png"
+	outputPath := "output/" + fileName + "/" + strings.TrimSuffix(im.fontName, ".ttf") + "_" + strings.TrimPrefix(im.titleColor, "#") + ".png"
 	if err := dc.SavePNG(outputPath); err != nil {
 		return err
 	}
